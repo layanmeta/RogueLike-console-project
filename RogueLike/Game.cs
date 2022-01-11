@@ -12,6 +12,7 @@ namespace RogueLike
     {
         //Notes for next time: HP resets every level despite HP loss in other levels 
         //make a death message
+        //!!BUG, messages override each other (if a message is longer than the one after, the end of the message stays)
         private Map currentMap;
         private List<Map> _allMaps;
         private Player player;
@@ -51,7 +52,7 @@ namespace RogueLike
             string[,] map3 =
             {
                 {"╔","═","╦","═","═","═","╦","═","═","═" ,"╦","═","═","╗" },
-                {"║"," ","║"," "," "," ","║"," ","T"," " ," "," ","X","║" },
+                {"║"," ","║"," "," "," ","║"," "," "," " ," "," ","X","║" },
                 {"║"," ","║"," ","╔"," ","║"," "," "," " ,"╔","═","═","║" },
                 {"║"," ","║"," ","║"," ","║"," "," ","T" ,"║"," "," ","║" },
                 {"║"," ","║"," ","║"," ","║"," "," "," " ," "," "," ","║" },
@@ -81,15 +82,12 @@ namespace RogueLike
             Console.ForegroundColor = ConsoleColor.White;
             //game intro
             Console.WriteLine("Welcome to my RogueLike game!");
-            Console.WriteLine("\n How to play:");
+            Console.WriteLine("\nHow to play:");
             Console.WriteLine("Use the arrow keys to move up, down, left, right");
             Console.WriteLine("Your goal is to reach X");
             Console.WriteLine("Press any key to start");
             Console.ReadKey(true);
         }
-
-
-        //Make a function that chooses between maps randomly when player hits x
 
         public void Outro()
         {
@@ -97,9 +95,14 @@ namespace RogueLike
             Console.Clear();
             Console.WriteLine("Congrats! You Escaped!");
             Console.ReadKey(true);
-
         }
 
+        public void Death()
+        {
+            Console.Clear();
+            Console.WriteLine("You died, good luck next time");
+            Console.ReadKey(true);
+        }
         //Sets the given map as current map
         public void SetMap(Map map)
         {
@@ -156,18 +159,21 @@ namespace RogueLike
             player.x = 1;
             player.y = 1;
             player.SetPlayer();
+            player.Inventory.Clear();
         }
 
         public void GameLoop()
         {  
             Intro();
-            while (true)
+            Console.Clear();
+            bool IsAlive = true;
+            while (IsAlive)
             {
                 _uIHandler.DrawUI(currentMap, player);
                 PlayerInput();
                 string elements = currentMap.GetElement(player.x, player.y);
                 //all the elements and their implementations
-                if (elements == "X" )
+                if (elements == "X")
                 {
                     if (currentMap.HasCompletedRequirements(player))
                     {
@@ -176,7 +182,7 @@ namespace RogueLike
                         if (currrentMapIndex < _allMaps.Count)
                         {
                             SetMap(_allMaps[currrentMapIndex]);
-                            player = new Player(1, 1);
+                            Respawn();
                             continue;
                         }
 
@@ -191,9 +197,8 @@ namespace RogueLike
                 else if (elements == "T")
                 {
                     _uIHandler.AddEventMessage("You stepped on a trap! You lost 1hp");
-                    Console.ForegroundColor = ConsoleColor.Blue;   
+                    currentMap.steppedOnTrap = true;
                     player.PlayerAttributes.Hp -= 1;
-                    Thread.Sleep(20);
                     Respawn();
                 }
                 else if (elements == "M")
@@ -202,18 +207,25 @@ namespace RogueLike
                 }
                 else if (elements == "C")
                 {
-                    _uIHandler.AddEventMessage("You gained a key to the exit gate!");
-
-                    currentMap.FoundChest(player);
-                    Console.ForegroundColor = ConsoleColor.Black;
+                    //BUG!!!!Only need to collect c once,then am able to leave all maps without it
+                    if (!player.Inventory.Contains("Key"))
+                    {
+                        _uIHandler.AddEventMessage("You gained a key to the exit gate!");
+                        currentMap.FoundChest(player);
+                        currentMap.hasKey = true;
+                    }
+                    else
+                    {
+                        _uIHandler.AddEventMessage("Sorry but you cannot have more keys");
+                    }                   
                 }
                 else if (elements == "H")
                 {
                     _uIHandler.AddEventMessage("You gained 1 heart!");
                     player.PlayerAttributes.Hp += 1;
-                }      
-                Thread.Sleep(20);             
+                }                  
             }
+            Death();
         }
     }
 }

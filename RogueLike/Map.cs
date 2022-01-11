@@ -9,6 +9,10 @@ namespace RogueLike
         private string[,] Grid;
         private int rows;
         private int cols;
+        //private int parameters;
+        //make bool for T, if true I change color, and call the bool in game
+        public bool steppedOnTrap = false;
+        public bool hasKey = false;
 
         public Map(string[,] grid)
         {
@@ -33,7 +37,11 @@ namespace RogueLike
                     }
                     else if (element == "T")
                     {                      
-                        Console.ForegroundColor = ConsoleColor.Gray;                       
+                        Console.ForegroundColor = ConsoleColor.Gray;
+                        if (steppedOnTrap == true)
+                        {
+                            Console.ForegroundColor = ConsoleColor.Blue;
+                        }
                     }
                     else if (element == "M")
                     {
@@ -42,6 +50,10 @@ namespace RogueLike
                     else if (element == "C")
                     {
                         Console.ForegroundColor = ConsoleColor.Yellow;
+                        if (hasKey == true)
+                        {
+                            Console.ForegroundColor = ConsoleColor.Gray;
+                        }
                     }
                     else if (element == "H")
                     {

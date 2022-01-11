@@ -17,11 +17,9 @@ namespace RogueLike
 
         public void DrawUI(Map map, Player player)
         {
-            
-            //calling everything from all class to print easily inside GameLoop() 
-            Console.Clear();
-            map.printMap();
 
+            //calling everything from all class to print easily inside GameLoop() 
+            map.printMap();
             Console.WriteLine($"\nHP: {player.PlayerAttributes.Hp}\n\n");
 
             //Draw Events from the event queue 
