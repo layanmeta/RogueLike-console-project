@@ -1,92 +1,68 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace RogueLike
 {
-    class Game
+    public class Game
     {
-        //Notes for next time: HP resets every level despite HP loss in other levels 
-        //make a death message
-        //!!BUG, messages override each other (if a message is longer than the one after, the end of the message stays)
-        private Map currentMap;
         private List<Map> _allMaps;
-        private Player player;
+        private Map _currentMap;
+        private Player _player;
+        private List<Enemy> _enemies;
+
+        private bool _isGameOver;
+
         private UIHandler _uIHandler;
+
         public void Start()
         {
-            Console.Title = "Welcome to my first RogueLike game!";
+            Init();
+            GameLoop();
+        }
+
+        public void Init()
+        {
             Console.CursorVisible = false;
-      
-            string[,] map1 =
-            {
-                {"╔","═","═","═","═","═","╦","═","═","╗" },
-                {"║"," "," ","║"," "," ","║"," ","X","║" },
-                {"║"," "," ","║"," "," "," "," "," ","║" },
-                {"║"," "," ","║","T"," "," "," "," ","║" },
-                {"║"," "," ","║"," "," ","║"," "," ","║" },
-                {"║"," "," "," "," "," ","║"," "," ","║" },
-                {"║"," "," "," ","═","═","╣"," "," ","║" },
-                {"║"," "," "," "," ","C","║"," "," ","║" },
-                {"╚","═","═","═","═","═","╩","═","═","╝" }
 
-            };
-
-            string[,] map2 =
-            {
-                {"╔","═","═","╦","═","═","╦","═","═","═" ,"╦","═","═","╗" },
-                {"║"," "," "," "," "," ","║"," "," "," " ," "," ","X","║" },
-                {"║"," "," ","║"," "," ","║"," "," "," " ,"╔","═","═","║" },
-                {"║"," "," ","║"," "," ","║"," "," "," " ,"║"," "," ","║" },
-                {"║"," "," ","║"," "," ","║"," ","T"," " ," "," "," ","║" },
-                {"║"," "," ","║"," "," "," "," "," "," " ,"║"," "," ","║" },
-                {"║"," "," ","╚","═","═","╗"," "," "," " ,"║"," ","M","║" },
-                {"║"," "," "," "," ","C","║"," "," "," " ,"║"," "," ","║" },
-                {"╚","═","═","═","═","═","╩","═","═","═" ,"╩","═","═","╝" }
-            };
-
-            string[,] map3 =
-            {
-                {"╔","═","╦","═","═","═","╦","═","═","═" ,"╦","═","═","╗" },
-                {"║"," ","║"," "," "," ","║"," "," "," " ," "," ","X","║" },
-                {"║"," ","║"," ","╔"," ","║"," "," "," " ,"╔","═","═","║" },
-                {"║"," ","║"," ","║"," ","║"," "," ","T" ,"║"," "," ","║" },
-                {"║"," ","║"," ","║"," ","║"," "," "," " ," "," "," ","║" },
-                {"║"," ","║"," ","║"," "," "," "," "," " ,"║"," "," ","║" },
-                {"║"," "," "," ","╚","═","╗"," "," "," " ,"║"," ","C","║" },
-                {"║"," "," "," "," ","M","║"," ","H"," " ,"║"," "," ","║" },
-                {"╚","═","═","═","═","═","╩","═","═","═" ,"╩","═","═","╝" }
-            };
-
-            //list of all the maps added above
+            //Add all maps
             _allMaps = new List<Map>();
-            _allMaps.Add(new Map(map1));
-            _allMaps.Add(new Map(map2));
-            _allMaps.Add(new Map(map3));
-            
+            new LevelCreator(_allMaps);
+
             //prints the maps
-            currentMap = _allMaps.First();
-            player = new Player(1,1);
+            _player = new Player(1, 1);
+
+            //Init enemies
+            _enemies = new List<Enemy>();
 
             //Init the UI Handler
             _uIHandler = new UIHandler();
-            GameLoop();
         }
 
         public void Intro()
         {
-            Console.ForegroundColor = ConsoleColor.White;
-            //game intro
-            Console.WriteLine("Welcome to my RogueLike game!");
-            Console.WriteLine("\nHow to play:");
-            Console.WriteLine("Use the arrow keys to move up, down, left, right");
-            Console.WriteLine("Your goal is to reach X");
-            Console.WriteLine("Press any key to start");
+            //game intro       
+            Console.WriteLine("How to play:");
+            Console.WriteLine("Use WASD keys to move up, down, left, right");
+            Console.Write("Your goal is to reach ");
+            Console.ForegroundColor = ConsoleColor.Green;
+            Console.Write("X");
+            Console.ResetColor();
+            Console.Write("\nIn order to leave, you need to first collect ");
+            Console.ForegroundColor = ConsoleColor.Yellow;
+            Console.Write("C");
+            Console.ResetColor();
+            Console.Write("\nBe careful because there are hidden traps along the way- ");
+            Console.ForegroundColor = ConsoleColor.Cyan;
+            Console.Write(" T");
+            Console.ResetColor();
+            Console.Write(" and monsters");
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.Write(" M");
+            Console.ResetColor();
+            Console.WriteLine("\nPress any key to start");
             Console.ReadKey(true);
+            Console.Clear();
         }
 
         public void Outro()
@@ -97,135 +73,134 @@ namespace RogueLike
             Console.ReadKey(true);
         }
 
-        public void Death()
+        public void GameOver()
         {
+            _isGameOver = true;
             Console.Clear();
             Console.WriteLine("You died, good luck next time");
             Console.ReadKey(true);
-        }
-        //Sets the given map as current map
-        public void SetMap(Map map)
+        }       
+
+        /// <summary>
+        /// Spawn all enemies in the current map
+        /// </summary>
+        public void SpawnEnemies()
         {
-            currentMap = map;
-        }
-
-        public void PlayerInput()
-        {
-            //player's movement
-            ConsoleKey key;
-            do
+            _enemies.Clear();
+            //enemy's spawns
+            for (var y = 0; y < _currentMap.rows; y++)
             {
-               ConsoleKeyInfo keyInfo = Console.ReadKey(true);
-               key = keyInfo.Key;
-
-            } while (Console.KeyAvailable);
-
-            switch (key)
-            {
-                case ConsoleKey.UpArrow:
-                    if (currentMap.IsItWalkable(player.x, player.y - 1))
+                for (var x = 0; x < _currentMap.cols; x++)
+                {
+                    if (_currentMap.Grid[y, x] == "M")
                     {
-                        player.y -= 1;
-                    }       
-                    break;
-                case ConsoleKey.DownArrow:
-                    if (currentMap.IsItWalkable(player.x, player.y + 1))
-                    {
-                        player.y += 1;
+                        _currentMap.Grid[y, x] = " ";
+                        _enemies.Add(new Enemy(x, y));
                     }
-                    break;
-                case ConsoleKey.LeftArrow:
-                    if (currentMap.IsItWalkable(player.x - 1, player.y ))
-                    {
-                        player.x -= 1;
-
-                    }
-                    break;
-                case ConsoleKey.RightArrow:
-                    if (currentMap.IsItWalkable(player.x + 1, player.y ))
-                    {
-                        player.x += 1;
-
-                    }
-                    break;            
-                default:
-                    break;
+                }
             }
         }
 
-        public void Respawn()
+        /// <summary>
+        /// Puts a new level into the game
+        /// </summary>
+        /// <param name="level"></param>
+        public void InitializeNewMap(int level)
         {
-            //respawn the player when dies or steps on traps
-            player.x = 1;
-            player.y = 1;
-            player.SetPlayer();
-            player.Inventory.Clear();
+            _currentMap = _allMaps[level];
+            _player.Respawn();
+            SpawnEnemies();
         }
 
         public void GameLoop()
-        {  
+        {
+            //Shows the menu
             Intro();
-            Console.Clear();
-            bool IsAlive = true;
-            while (IsAlive)
+
+            //Init the first map
+            InitializeNewMap(0);
+
+            while (!_isGameOver)
             {
-                _uIHandler.DrawUI(currentMap, player);
-                PlayerInput();
-                string elements = currentMap.GetElement(player.x, player.y);
+                //Draws everything 
+                _uIHandler.DrawUI(_currentMap, _player, _enemies);
+
+                //Handle player input 
+                _player.HandlePlayerInput(_currentMap);
+                //Handle enemies inputs
+                foreach (var enemy in _enemies) enemy.HandleMovement(_currentMap);
+
+                string elements = _currentMap.GetElement(_player.x, _player.y);
                 //all the elements and their implementations
                 if (elements == "X")
                 {
-                    if (currentMap.HasCompletedRequirements(player))
+                    if (_currentMap.Exit(_player))
                     {
-                        var currrentMapIndex = _allMaps.IndexOf(currentMap) + 1;
-                        //Go to the next map if its not the last level
-                        if (currrentMapIndex < _allMaps.Count)
+                        _uIHandler.AddEventMessage("You used your key to exit");
+                        var nextMapIndex = _allMaps.IndexOf(_currentMap) + 1;
+                        if (nextMapIndex < _allMaps.Count) InitializeNewMap(nextMapIndex);
+                        else
                         {
-                            SetMap(_allMaps[currrentMapIndex]);
-                            Respawn();
-                            continue;
+                            Outro();
+                            break;
                         }
-
-                        Outro();
-                        break;
                     }
-                    else
-                    {
-                        _uIHandler.AddEventMessage("You need a key for this exit");
-                    }
+                    else _uIHandler.AddEventMessage("You need a key for this exit");                                   
                 }
                 else if (elements == "T")
                 {
                     _uIHandler.AddEventMessage("You stepped on a trap! You lost 1hp");
-                    currentMap.steppedOnTrap = true;
-                    player.PlayerAttributes.Hp -= 1;
-                    Respawn();
-                }
-                else if (elements == "M")
-                {
-                    //Monster function
+                    _currentMap.ActivatedTrap(_player);                    
                 }
                 else if (elements == "C")
                 {
-                    //BUG!!!!Only need to collect c once,then am able to leave all maps without it
-                    if (!player.Inventory.Contains("Key"))
+                    if (!_player.Inventory.Contains("Key"))
                     {
                         _uIHandler.AddEventMessage("You gained a key to the exit gate!");
-                        currentMap.FoundChest(player);
-                        currentMap.hasKey = true;
+                        _currentMap.FoundChest(_player);                      
                     }
-                    else
-                    {
-                        _uIHandler.AddEventMessage("Sorry but you cannot have more keys");
-                    }                   
+                    else _uIHandler.AddEventMessage("Sorry but you cannot have more keys");
+                }
+                else if (elements == "!")
+                {
+                    if(_currentMap.FoundWeapon(_player)) _uIHandler.AddEventMessage("You got a new weapon! Your damage and speed got changed");
+                    else _uIHandler.AddEventMessage("You cant get more weapons");
                 }
                 else if (elements == "H")
                 {
-                    _uIHandler.AddEventMessage("You gained 1 heart!");
-                    player.PlayerAttributes.Hp += 1;
-                }                  
+                    if(_currentMap.FoundHeart(_player)) _uIHandler.AddEventMessage("You gained 3 hearts!");
+                    else _uIHandler.AddEventMessage("You cant get more health");
+                }
+
+                //Checks if a monster interacts with player                
+                var enemyToFight = _enemies.FirstOrDefault(e => e.x == _player.x && e.y == _player.y);
+                if (enemyToFight != null)
+                {
+                    _uIHandler.AddEventMessage("You encountered a monster");
+                    //Get both enemyToFight and players speed and decide who will attack
+                    var random = new Random();
+                    var playerLuck = random.Next(0, _player.Stats.Speed);
+                    var enemyLuck = random.Next(0, enemyToFight.Stats.Speed);
+                    if (playerLuck > enemyLuck) 
+                    {
+                        var totalDamage = _player.Stats.totalDamage; //Player should have a total dmg stat
+                        enemyToFight.GetHit(totalDamage);
+                        _uIHandler.AddEventMessage($"You hit the monster with {totalDamage} damage");
+                        if (enemyToFight.Stats.Hp <= 0)
+                        {
+                            enemyToFight.Kill(_enemies);
+                            _uIHandler.AddEventMessage("You killed a monster");
+                        }
+                    }
+                    else
+                    {
+                        _player.GetHit(enemyToFight.Stats.damage);                        
+                        _uIHandler.AddEventMessage($"The monster hit you with {enemyToFight.Stats.damage} damage");
+                    }
+                }
+
+                if (_player.Stats.Hp <= 0) GameOver();
             }
-            Death();
         }
     }
 }

@@ -4,9 +4,10 @@ using System.Text;
 
 namespace RogueLike
 {
-    public class Attributes
+    //Interface for all equipments
+    public interface IEquipment
     {
-        public int Hp { get; set; }
+        public string Name { get; set; }
         public int Damage { get; set; }
     }
 }
